@@ -37,7 +37,7 @@ class AutoScalingQueryHandlerTest {
                 "EC2",
                 0,
                 List.of("Default"),
-                java.util.Map.of());
+                java.util.Map.of(), java.util.Map.of());
 
         AutoScalingQueryHandler handler = new AutoScalingQueryHandler(service);
         MultivaluedHashMap<String, String> startParams = new MultivaluedHashMap<>();
@@ -102,7 +102,7 @@ class AutoScalingQueryHandlerTest {
                 "EC2",
                 0,
                 List.of("Default"),
-                java.util.Map.of());
+                java.util.Map.of(), java.util.Map.of());
         AsgInstance instance = new AsgInstance();
         instance.setInstanceId("i-original");
         instance.setAvailabilityZone("us-east-1a");
@@ -157,7 +157,7 @@ class AutoScalingQueryHandlerTest {
                 "EC2",
                 0,
                 List.of("Default"),
-                java.util.Map.of());
+                java.util.Map.of(), java.util.Map.of());
         AsgInstance instance = new AsgInstance();
         instance.setInstanceId("i-current");
         instance.setAvailabilityZone("us-east-1a");
@@ -206,7 +206,7 @@ class AutoScalingQueryHandlerTest {
                 "EC2",
                 0,
                 List.of("Default"),
-                java.util.Map.of());
+                java.util.Map.of(), java.util.Map.of());
 
         AutoScalingQueryHandler handler = new AutoScalingQueryHandler(service);
         MultivaluedHashMap<String, String> putParams = new MultivaluedHashMap<>();
