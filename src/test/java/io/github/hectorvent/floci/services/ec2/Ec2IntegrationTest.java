@@ -1844,7 +1844,8 @@ class Ec2IntegrationTest {
             .post("/")
         .then()
             .statusCode(200)
-            .body("DescribeTagsResponse.tagSet.item.find { it.key == 'Name' }.value", equalTo("test-instance"));
+            .body("DescribeTagsResponse.tagSet.item.find { it.resourceId == '" + instanceId + "' && it.key == 'Name' }.value",
+                    equalTo("test-instance"));
     }
 
     @Test
@@ -1875,7 +1876,7 @@ class Ec2IntegrationTest {
             .post("/")
         .then()
             .statusCode(200)
-            .body("DescribeTagsResponse.tagSet.item.key", equalTo("Name"));
+            .body("DescribeTagsResponse.tagSet.item.find { it.resourceId == '" + instanceId + "' }.key", equalTo("Name"));
     }
 
     @Test

@@ -987,6 +987,11 @@ public class Ec2QueryHandler {
         String cidrBlock = p.getFirst("CidrBlock");
         String az = p.getFirst("AvailabilityZone");
         Subnet subnet = service.createSubnet(region, vpcId, cidrBlock, az);
+        List<Tag> subnetTags = parseTagsForResource(p, "subnet");
+        if (!subnetTags.isEmpty()) {
+            service.createTags(region, List.of(subnet.getSubnetId()), subnetTags);
+            subnet.setTags(subnetTags);
+        }
         XmlBuilder xml = new XmlBuilder()
                 .start("CreateSubnetResponse", AwsNamespaces.EC2)
                 .elem("requestId", UUID.randomUUID().toString())
@@ -1039,6 +1044,11 @@ public class Ec2QueryHandler {
         String description = p.getFirst("GroupDescription");
         String vpcId = p.getFirst("VpcId");
         SecurityGroup sg = service.createSecurityGroup(region, groupName, description, vpcId);
+        List<Tag> securityGroupTags = parseTagsForResource(p, "security-group");
+        if (!securityGroupTags.isEmpty()) {
+            service.createTags(region, List.of(sg.getGroupId()), securityGroupTags);
+            sg.setTags(securityGroupTags);
+        }
         XmlBuilder xml = new XmlBuilder()
                 .start("CreateSecurityGroupResponse", AwsNamespaces.EC2)
                 .elem("requestId", UUID.randomUUID().toString())
