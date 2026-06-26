@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.hectorvent.floci.services.ec2.Ec2Service;
 import io.github.hectorvent.floci.services.ec2.model.SecurityGroup;
 import io.github.hectorvent.floci.services.ec2.model.Subnet;
+import io.github.hectorvent.floci.services.ec2.model.Tag;
 import io.github.hectorvent.floci.services.ec2.model.Vpc;
 import io.github.hectorvent.floci.services.iam.IamService;
 import io.github.hectorvent.floci.services.iam.model.IamRole;
@@ -65,6 +66,7 @@ public class CloudControlService {
             properties.put("VpcId", vpc.getVpcId());
             properties.put("CidrBlock", vpc.getCidrBlock());
             properties.put("InstanceTenancy", vpc.getInstanceTenancy());
+            addTags(properties, vpc.getTags());
             resources.add(new ResourceDescription(vpc.getVpcId(), propertiesString(properties)));
         }
         return resources;
@@ -78,6 +80,7 @@ public class CloudControlService {
             properties.put("VpcId", subnet.getVpcId());
             properties.put("CidrBlock", subnet.getCidrBlock());
             properties.put("AvailabilityZone", subnet.getAvailabilityZone());
+            addTags(properties, subnet.getTags());
             resources.add(new ResourceDescription(subnet.getSubnetId(), propertiesString(properties)));
         }
         return resources;
@@ -91,6 +94,7 @@ public class CloudControlService {
             properties.put("GroupName", group.getGroupName());
             properties.put("GroupDescription", group.getDescription());
             properties.put("VpcId", group.getVpcId());
+            addTags(properties, group.getTags());
             resources.add(new ResourceDescription(group.getGroupId(), propertiesString(properties)));
         }
         return resources;
@@ -125,6 +129,18 @@ public class CloudControlService {
             return mapper.writeValueAsString(properties);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize CloudControl resource properties", e);
+        }
+    }
+
+    private void addTags(ObjectNode properties, List<Tag> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return;
+        }
+        var tagArray = properties.putArray("Tags");
+        for (Tag tag : tags) {
+            tagArray.addObject()
+                    .put("Key", tag.getKey())
+                    .put("Value", tag.getValue());
         }
     }
 
