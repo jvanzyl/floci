@@ -7,6 +7,7 @@ import io.github.hectorvent.floci.core.storage.StorageBackend;
 import io.github.hectorvent.floci.services.ec2.model.Address;
 import io.github.hectorvent.floci.services.ec2.model.Instance;
 import io.github.hectorvent.floci.services.ec2.model.InternetGateway;
+import io.github.hectorvent.floci.services.ec2.model.Image;
 import io.github.hectorvent.floci.services.ec2.model.NetworkAcl;
 import io.github.hectorvent.floci.services.ec2.model.KeyPair;
 import io.github.hectorvent.floci.services.ec2.model.LaunchTemplate;
@@ -14,6 +15,7 @@ import io.github.hectorvent.floci.services.ec2.model.NatGateway;
 import io.github.hectorvent.floci.services.ec2.model.RouteTable;
 import io.github.hectorvent.floci.services.ec2.model.SecurityGroup;
 import io.github.hectorvent.floci.services.ec2.model.SecurityGroupRule;
+import io.github.hectorvent.floci.services.ec2.model.Snapshot;
 import io.github.hectorvent.floci.services.ec2.model.Subnet;
 import io.github.hectorvent.floci.services.ec2.model.Tag;
 import io.github.hectorvent.floci.services.ec2.model.Volume;
@@ -79,6 +81,8 @@ class Ec2ServicePersistenceTest {
                 load(dir, "ec2-addresses.json", new TypeReference<Map<String, Address>>() {}),
                 load(dir, "ec2-instances.json", new TypeReference<Map<String, Instance>>() {}),
                 load(dir, "ec2-volumes.json", new TypeReference<Map<String, Volume>>() {}),
+                load(dir, "ec2-registered-images.json", new TypeReference<Map<String, Image>>() {}),
+                load(dir, "ec2-snapshots.json", new TypeReference<Map<String, Snapshot>>() {}),
                 load(dir, "ec2-launch-templates.json", new TypeReference<Map<String, LaunchTemplate>>() {}),
                 load(dir, "ec2-vpc-endpoints.json", new TypeReference<Map<String, VpcEndpoint>>() {}),
                 load(dir, "ec2-nat-gateways.json", new TypeReference<Map<String, NatGateway>>() {}),
