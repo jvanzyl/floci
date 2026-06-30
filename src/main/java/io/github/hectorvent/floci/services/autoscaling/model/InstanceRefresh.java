@@ -25,6 +25,7 @@ public class InstanceRefresh {
     private String desiredLaunchTemplateId;
     private String desiredLaunchTemplateName;
     private String desiredLaunchTemplateVersion;
+    private MixedInstancesPolicy desiredMixedInstancesPolicy;
 
     private Integer minHealthyPercentage;
     private Integer maxHealthyPercentage;
@@ -78,6 +79,9 @@ public class InstanceRefresh {
     public String getDesiredLaunchTemplateVersion() { return desiredLaunchTemplateVersion; }
     public void setDesiredLaunchTemplateVersion(String v) { this.desiredLaunchTemplateVersion = v; }
 
+    public MixedInstancesPolicy getDesiredMixedInstancesPolicy() { return desiredMixedInstancesPolicy; }
+    public void setDesiredMixedInstancesPolicy(MixedInstancesPolicy v) { this.desiredMixedInstancesPolicy = v; }
+
     public Integer getMinHealthyPercentage() { return minHealthyPercentage; }
     public void setMinHealthyPercentage(Integer v) { this.minHealthyPercentage = v; }
 
@@ -113,7 +117,8 @@ public class InstanceRefresh {
     public boolean hasDesiredConfiguration() {
         return desiredLaunchTemplateId != null
                 || desiredLaunchTemplateName != null
-                || desiredLaunchTemplateVersion != null;
+                || desiredLaunchTemplateVersion != null
+                || desiredMixedInstancesPolicy != null;
     }
 
     public boolean hasPreferences() {

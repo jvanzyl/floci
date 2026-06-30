@@ -82,6 +82,62 @@ class AutoScalingQueryHandlerTest {
     }
 
     @Test
+    void startInstanceRefreshAcceptsDesiredMixedInstancesPolicy() {
+        AutoScalingService service = new AutoScalingService();
+        service.regionResolver = new RegionResolver(REGION, "000000000000");
+        service.createAutoScalingGroup(REGION,
+                "query-asg",
+                null,
+                "lt-original",
+                null,
+                "1",
+                null,
+                0,
+                3,
+                1,
+                300,
+                List.of("us-east-1a"),
+                List.of(),
+                List.of(),
+                List.of(),
+                "EC2",
+                0,
+                List.of("Default"),
+                java.util.Map.of(), java.util.Map.of());
+
+        AutoScalingQueryHandler handler = new AutoScalingQueryHandler(service);
+        MultivaluedHashMap<String, String> startParams = new MultivaluedHashMap<>();
+        startParams.add("AutoScalingGroupName", "query-asg");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateId", "lt-mixed");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.Version", "2");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.Overrides.member.1.InstanceType", "t4g.medium");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.OnDemandBaseCapacity", "1");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.OnDemandPercentageAboveBaseCapacity", "50");
+        startParams.add("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy", "capacity-optimized");
+
+        Response startResponse = handler.handle("StartInstanceRefresh", startParams, REGION);
+
+        assertEquals(200, startResponse.getStatus());
+        String refreshId = service.describeInstanceRefreshes(REGION, "query-asg", List.of(), null, null)
+                .instanceRefreshes().getFirst().getInstanceRefreshId();
+        MultivaluedHashMap<String, String> describeParams = new MultivaluedHashMap<>();
+        describeParams.add("AutoScalingGroupName", "query-asg");
+        describeParams.add("InstanceRefreshIds.member.1", refreshId);
+
+        String describeXml = (String) handler.handle("DescribeInstanceRefreshes", describeParams, REGION).getEntity();
+
+        assertTrue(describeXml.contains("<DesiredConfiguration>"));
+        assertTrue(describeXml.contains("<MixedInstancesPolicy>"));
+        assertTrue(describeXml.contains("<LaunchTemplateSpecification>"));
+        assertTrue(describeXml.contains("<LaunchTemplateId>lt-mixed</LaunchTemplateId>"));
+        assertTrue(describeXml.contains("<Version>2</Version>"));
+        assertTrue(describeXml.contains("<InstanceType>t4g.medium</InstanceType>"));
+        assertTrue(describeXml.contains("<OnDemandBaseCapacity>1</OnDemandBaseCapacity>"));
+        assertTrue(describeXml.contains("<OnDemandPercentageAboveBaseCapacity>50</OnDemandPercentageAboveBaseCapacity>"));
+        assertTrue(describeXml.contains("<SpotAllocationStrategy>capacity-optimized</SpotAllocationStrategy>"));
+    }
+
+    @Test
     void updateAutoScalingGroupRejectsDesiredConfigurationChangeDuringActiveInstanceRefresh() {
         AutoScalingService service = new AutoScalingService();
         service.regionResolver = new RegionResolver(REGION, "000000000000");

@@ -368,6 +368,34 @@ class AutoScalingServiceTest {
     }
 
     @Test
+    void startInstanceRefreshAppliesDesiredMixedInstancesPolicy() {
+        AutoScalingGroupFixture.addInstance(service, REGION, "test-asg", "i-original", "InService", "lt-original", "1");
+        InstanceRefresh request = new InstanceRefresh();
+        request.setDesiredMixedInstancesPolicy(mixedInstancesPolicy("lt-updated", "2", "t4g.medium"));
+        request.setSkipMatching(true);
+
+        InstanceRefresh refresh = service.startInstanceRefresh(REGION, "test-asg", request);
+
+        assertEquals("InProgress", refresh.getStatus());
+        assertEquals(1, refresh.getInstancesToUpdate());
+        assertEquals("lt-updated", refresh.getDesiredMixedInstancesPolicy()
+                .getLaunchTemplate()
+                .getLaunchTemplateSpecification()
+                .getLaunchTemplateId());
+        var group = service.describeAutoScalingGroups(REGION, List.of("test-asg")).getFirst();
+        assertNull(group.getLaunchTemplateId());
+        assertEquals("lt-updated", group.getMixedInstancesPolicy()
+                .getLaunchTemplate()
+                .getLaunchTemplateSpecification()
+                .getLaunchTemplateId());
+        assertEquals("2", group.getMixedInstancesPolicy()
+                .getLaunchTemplate()
+                .getLaunchTemplateSpecification()
+                .getVersion());
+        assertEquals("Terminating", group.getInstances().getFirst().getLifecycleState());
+    }
+
+    @Test
     void startInstanceRefreshRejectsSecondRefreshWhileFirstIsActive() {
         AutoScalingGroupFixture.addInstance(service, REGION, "test-asg", "i-original", "InService", "lt-original", "1");
         service.startInstanceRefresh(REGION, "test-asg", new InstanceRefresh());
@@ -647,5 +675,21 @@ class AutoScalingServiceTest {
                     .getInstances()
                     .add(instance);
         }
+    }
+
+    private static MixedInstancesPolicy mixedInstancesPolicy(String launchTemplateId, String version, String instanceType) {
+        MixedInstancesPolicy policy = new MixedInstancesPolicy();
+        MixedInstancesPolicy.LaunchTemplate launchTemplate = new MixedInstancesPolicy.LaunchTemplate();
+        MixedInstancesPolicy.LaunchTemplateSpecification specification =
+                new MixedInstancesPolicy.LaunchTemplateSpecification();
+        specification.setLaunchTemplateId(launchTemplateId);
+        specification.setVersion(version);
+        launchTemplate.setLaunchTemplateSpecification(specification);
+        MixedInstancesPolicy.LaunchTemplateOverride override =
+                new MixedInstancesPolicy.LaunchTemplateOverride();
+        override.setInstanceType(instanceType);
+        launchTemplate.setOverrides(List.of(override));
+        policy.setLaunchTemplate(launchTemplate);
+        return policy;
     }
 }

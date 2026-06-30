@@ -160,7 +160,7 @@ public class AutoScalingQueryHandler {
                 p.getFirst("LaunchTemplate.LaunchTemplateId"),
                 p.getFirst("LaunchTemplate.LaunchTemplateName"),
                 p.getFirst("LaunchTemplate.Version"),
-                parseMixedInstancesPolicy(p),
+                parseMixedInstancesPolicy(p, "MixedInstancesPolicy"),
                 intParam(p, "MinSize", 0),
                 intParam(p, "MaxSize", 0),
                 intParam(p, "DesiredCapacity", intParam(p, "MinSize", 0)),
@@ -190,7 +190,7 @@ public class AutoScalingQueryHandler {
                 p.getFirst("LaunchTemplate.LaunchTemplateId"),
                 p.getFirst("LaunchTemplate.LaunchTemplateName"),
                 p.getFirst("LaunchTemplate.Version"),
-                parseMixedInstancesPolicy(p),
+                parseMixedInstancesPolicy(p, "MixedInstancesPolicy"),
                 p.getFirst("MinSize") != null ? Integer.parseInt(p.getFirst("MinSize")) : null,
                 p.getFirst("MaxSize") != null ? Integer.parseInt(p.getFirst("MaxSize")) : null,
                 p.getFirst("DesiredCapacity") != null ? Integer.parseInt(p.getFirst("DesiredCapacity")) : null,
@@ -410,13 +410,18 @@ public class AutoScalingQueryHandler {
         if (!refresh.hasDesiredConfiguration()) {
             return;
         }
-        xml.start("DesiredConfiguration")
-           .start("LaunchTemplate")
-           .elem("LaunchTemplateId", refresh.getDesiredLaunchTemplateId())
-           .elem("LaunchTemplateName", refresh.getDesiredLaunchTemplateName())
-           .elem("Version", refresh.getDesiredLaunchTemplateVersion())
-           .end("LaunchTemplate")
-           .end("DesiredConfiguration");
+        xml.start("DesiredConfiguration");
+        if (refresh.getDesiredMixedInstancesPolicy() != null) {
+            appendMixedInstancesPolicyXml(xml, refresh.getDesiredMixedInstancesPolicy());
+        }
+        else {
+            xml.start("LaunchTemplate")
+               .elem("LaunchTemplateId", refresh.getDesiredLaunchTemplateId())
+               .elem("LaunchTemplateName", refresh.getDesiredLaunchTemplateName())
+               .elem("Version", refresh.getDesiredLaunchTemplateVersion())
+               .end("LaunchTemplate");
+        }
+        xml.end("DesiredConfiguration");
     }
 
     private void appendPreferencesXml(XmlBuilder xml, InstanceRefresh refresh) {
@@ -1005,8 +1010,8 @@ public class AutoScalingQueryHandler {
                 .toList();
     }
 
-    private MixedInstancesPolicy parseMixedInstancesPolicy(MultivaluedMap<String, String> p) {
-        if (!hasAnyPrefix(p, "MixedInstancesPolicy.")) {
+    private MixedInstancesPolicy parseMixedInstancesPolicy(MultivaluedMap<String, String> p, String prefix) {
+        if (!hasAnyPrefix(p, prefix + ".")) {
             return null;
         }
         MixedInstancesPolicy policy = new MixedInstancesPolicy();
@@ -1015,17 +1020,17 @@ public class AutoScalingQueryHandler {
         MixedInstancesPolicy.LaunchTemplateSpecification specification =
                 new MixedInstancesPolicy.LaunchTemplateSpecification();
         specification.setLaunchTemplateId(p.getFirst(
-                "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateId"));
+                prefix + ".LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateId"));
         specification.setLaunchTemplateName(p.getFirst(
-                "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateName"));
+                prefix + ".LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateName"));
         specification.setVersion(p.getFirst(
-                "MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.Version"));
+                prefix + ".LaunchTemplate.LaunchTemplateSpecification.Version"));
         if (specification.getLaunchTemplateId() != null
                 || specification.getLaunchTemplateName() != null
                 || specification.getVersion() != null) {
             launchTemplate.setLaunchTemplateSpecification(specification);
         }
-        launchTemplate.setOverrides(parseMixedLaunchTemplateOverrides(p));
+        launchTemplate.setOverrides(parseMixedLaunchTemplateOverrides(p, prefix));
         if (launchTemplate.getLaunchTemplateSpecification() != null || !launchTemplate.getOverrides().isEmpty()) {
             policy.setLaunchTemplate(launchTemplate);
         }
@@ -1033,11 +1038,11 @@ public class AutoScalingQueryHandler {
         MixedInstancesPolicy.InstancesDistribution distribution =
                 new MixedInstancesPolicy.InstancesDistribution();
         distribution.setOnDemandBaseCapacity(nullableIntParam(
-                p, "MixedInstancesPolicy.InstancesDistribution.OnDemandBaseCapacity"));
+                p, prefix + ".InstancesDistribution.OnDemandBaseCapacity"));
         distribution.setOnDemandPercentageAboveBaseCapacity(nullableIntParam(
-                p, "MixedInstancesPolicy.InstancesDistribution.OnDemandPercentageAboveBaseCapacity"));
+                p, prefix + ".InstancesDistribution.OnDemandPercentageAboveBaseCapacity"));
         distribution.setSpotAllocationStrategy(
-                p.getFirst("MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy"));
+                p.getFirst(prefix + ".InstancesDistribution.SpotAllocationStrategy"));
         if (distribution.getOnDemandBaseCapacity() != null
                 || distribution.getOnDemandPercentageAboveBaseCapacity() != null
                 || distribution.getSpotAllocationStrategy() != null) {
@@ -1056,10 +1061,10 @@ public class AutoScalingQueryHandler {
     }
 
     private List<MixedInstancesPolicy.LaunchTemplateOverride> parseMixedLaunchTemplateOverrides(
-            MultivaluedMap<String, String> p) {
+            MultivaluedMap<String, String> p, String prefix) {
         List<MixedInstancesPolicy.LaunchTemplateOverride> result = new ArrayList<>();
         for (int i = 1; ; i++) {
-            String instanceType = p.getFirst("MixedInstancesPolicy.LaunchTemplate.Overrides.member."
+            String instanceType = p.getFirst(prefix + ".LaunchTemplate.Overrides.member."
                     + i + ".InstanceType");
             if (instanceType == null) { break; }
             MixedInstancesPolicy.LaunchTemplateOverride override =
@@ -1108,6 +1113,7 @@ public class AutoScalingQueryHandler {
         refresh.setDesiredLaunchTemplateId(p.getFirst("DesiredConfiguration.LaunchTemplate.LaunchTemplateId"));
         refresh.setDesiredLaunchTemplateName(p.getFirst("DesiredConfiguration.LaunchTemplate.LaunchTemplateName"));
         refresh.setDesiredLaunchTemplateVersion(p.getFirst("DesiredConfiguration.LaunchTemplate.Version"));
+        refresh.setDesiredMixedInstancesPolicy(parseMixedInstancesPolicy(p, "DesiredConfiguration.MixedInstancesPolicy"));
         refresh.setMinHealthyPercentage(nullableIntParam(p, "Preferences.MinHealthyPercentage"));
         refresh.setMaxHealthyPercentage(nullableIntParam(p, "Preferences.MaxHealthyPercentage"));
         refresh.setInstanceWarmup(nullableIntParam(p, "Preferences.InstanceWarmup"));

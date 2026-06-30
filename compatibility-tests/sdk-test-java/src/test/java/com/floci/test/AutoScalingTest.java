@@ -10,8 +10,13 @@ import software.amazon.awssdk.services.autoscaling.model.AutoScalingException;
 import software.amazon.awssdk.services.autoscaling.model.CreateAutoScalingGroupRequest;
 import software.amazon.awssdk.services.autoscaling.model.CreateLaunchConfigurationRequest;
 import software.amazon.awssdk.services.autoscaling.model.DescribeAutoScalingGroupsRequest;
+import software.amazon.awssdk.services.autoscaling.model.DescribeInstanceRefreshesRequest;
 import software.amazon.awssdk.services.autoscaling.model.DesiredConfiguration;
+import software.amazon.awssdk.services.autoscaling.model.InstancesDistribution;
+import software.amazon.awssdk.services.autoscaling.model.LaunchTemplate;
+import software.amazon.awssdk.services.autoscaling.model.LaunchTemplateOverrides;
 import software.amazon.awssdk.services.autoscaling.model.LaunchTemplateSpecification;
+import software.amazon.awssdk.services.autoscaling.model.MixedInstancesPolicy;
 import software.amazon.awssdk.services.autoscaling.model.ResumeProcessesRequest;
 import software.amazon.awssdk.services.autoscaling.model.StartInstanceRefreshRequest;
 import software.amazon.awssdk.services.autoscaling.model.SuspendProcessesRequest;
@@ -260,5 +265,75 @@ class AutoScalingTest {
         assertThat(resumed)
                 .extracting(process -> process.processName())
                 .containsExactly("Terminate");
+    }
+
+    @Test
+    @DisplayName("StartInstanceRefresh round-trips desired mixed instances policy through SDK")
+    void instanceRefreshDesiredMixedInstancesPolicyRoundTripsThroughSdk() {
+        String launchTemplateName = TestFixtures.uniqueName("sdk-refresh-mixed");
+        String autoScalingGroupName = TestFixtures.uniqueName("sdk-refresh-mixed-asg");
+        String launchTemplateId = ec2.createLaunchTemplate(CreateLaunchTemplateRequest.builder()
+                .launchTemplateName(launchTemplateName)
+                .launchTemplateData(RequestLaunchTemplateData.builder()
+                        .imageId("ami-12345678")
+                        .instanceType("t3.micro")
+                        .build())
+                .build())
+                .launchTemplate()
+                .launchTemplateId();
+
+        autoScaling.createAutoScalingGroup(CreateAutoScalingGroupRequest.builder()
+                .autoScalingGroupName(autoScalingGroupName)
+                .launchTemplate(LaunchTemplateSpecification.builder()
+                        .launchTemplateId(launchTemplateId)
+                        .version("1")
+                        .build())
+                .minSize(0)
+                .maxSize(1)
+                .desiredCapacity(0)
+                .availabilityZones("us-east-1a")
+                .build());
+
+        String refreshId = autoScaling.startInstanceRefresh(StartInstanceRefreshRequest.builder()
+                .autoScalingGroupName(autoScalingGroupName)
+                .desiredConfiguration(DesiredConfiguration.builder()
+                        .mixedInstancesPolicy(MixedInstancesPolicy.builder()
+                                .launchTemplate(LaunchTemplate.builder()
+                                        .launchTemplateSpecification(LaunchTemplateSpecification.builder()
+                                                .launchTemplateId(launchTemplateId)
+                                                .version("2")
+                                                .build())
+                                        .overrides(LaunchTemplateOverrides.builder()
+                                                .instanceType("t4g.medium")
+                                                .build())
+                                        .build())
+                                .instancesDistribution(InstancesDistribution.builder()
+                                        .onDemandBaseCapacity(1)
+                                        .onDemandPercentageAboveBaseCapacity(50)
+                                        .spotAllocationStrategy("capacity-optimized")
+                                        .build())
+                                .build())
+                        .build())
+                .build())
+                .instanceRefreshId();
+
+        var refresh = autoScaling.describeInstanceRefreshes(DescribeInstanceRefreshesRequest.builder()
+                .autoScalingGroupName(autoScalingGroupName)
+                .instanceRefreshIds(refreshId)
+                .build()).instanceRefreshes().get(0);
+
+        assertThat(refresh.instanceRefreshId()).isEqualTo(refreshId);
+        assertThat(refresh.desiredConfiguration().mixedInstancesPolicy()
+                .launchTemplate().launchTemplateSpecification().launchTemplateId())
+                .isEqualTo(launchTemplateId);
+        assertThat(refresh.desiredConfiguration().mixedInstancesPolicy()
+                .launchTemplate().launchTemplateSpecification().version())
+                .isEqualTo("2");
+        assertThat(refresh.desiredConfiguration().mixedInstancesPolicy()
+                .launchTemplate().overrides().get(0).instanceType())
+                .isEqualTo("t4g.medium");
+        assertThat(refresh.desiredConfiguration().mixedInstancesPolicy()
+                .instancesDistribution().spotAllocationStrategy())
+                .isEqualTo("capacity-optimized");
     }
 }

@@ -957,6 +957,7 @@ public class AutoScalingService {
         target.setDesiredLaunchTemplateId(source.getDesiredLaunchTemplateId());
         target.setDesiredLaunchTemplateName(source.getDesiredLaunchTemplateName());
         target.setDesiredLaunchTemplateVersion(source.getDesiredLaunchTemplateVersion());
+        target.setDesiredMixedInstancesPolicy(source.getDesiredMixedInstancesPolicy());
     }
 
     private static void copyPreferences(InstanceRefresh source, InstanceRefresh target) {
@@ -983,6 +984,13 @@ public class AutoScalingService {
         }
         if (refresh.getDesiredLaunchTemplateVersion() != null) {
             asg.setLaunchTemplateVersion(refresh.getDesiredLaunchTemplateVersion());
+        }
+        if (refresh.getDesiredMixedInstancesPolicy() != null) {
+            asg.setLaunchConfigurationName(null);
+            asg.setLaunchTemplateId(null);
+            asg.setLaunchTemplateName(null);
+            asg.setLaunchTemplateVersion(null);
+            asg.setMixedInstancesPolicy(refresh.getDesiredMixedInstancesPolicy());
         }
     }
 

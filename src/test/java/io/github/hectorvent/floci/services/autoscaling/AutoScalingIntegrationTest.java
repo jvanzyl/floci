@@ -778,6 +778,62 @@ class AutoScalingIntegrationTest {
 
     @Test
     @Order(31)
+    void startInstanceRefreshWithDesiredMixedInstancesPolicy() {
+        createLaunchTemplateVersion(mixedLaunchTemplateId, "t3.2xlarge");
+
+        String refreshId = given()
+                .formParam("Action", "StartInstanceRefresh")
+                .formParam("AutoScalingGroupName", "my-mixed-asg")
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.LaunchTemplateId",
+                        mixedLaunchTemplateId)
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.LaunchTemplateSpecification.Version", "6")
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.LaunchTemplate.Overrides.member.1.InstanceType", "m7g.large")
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.OnDemandBaseCapacity", "1")
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.OnDemandPercentageAboveBaseCapacity", "60")
+                .formParam("DesiredConfiguration.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy", "capacity-optimized")
+                .header("Authorization", AUTH)
+            .when()
+                .post("/")
+            .then()
+                .statusCode(200)
+                .body(containsString("StartInstanceRefreshResponse"))
+                .body(containsString("InstanceRefreshId"))
+                .extract().xmlPath()
+                .getString("StartInstanceRefreshResponse.StartInstanceRefreshResult.InstanceRefreshId");
+
+        given()
+                .formParam("Action", "DescribeInstanceRefreshes")
+                .formParam("AutoScalingGroupName", "my-mixed-asg")
+                .formParam("InstanceRefreshIds.member.1", refreshId)
+                .header("Authorization", AUTH)
+            .when()
+                .post("/")
+            .then()
+                .statusCode(200)
+                .body(containsString("<DesiredConfiguration>"))
+                .body(containsString("<MixedInstancesPolicy>"))
+                .body(containsString("<LaunchTemplateId>" + mixedLaunchTemplateId + "</LaunchTemplateId>"))
+                .body(containsString("<Version>6</Version>"))
+                .body(containsString("<InstanceType>m7g.large</InstanceType>"))
+                .body(containsString("<OnDemandBaseCapacity>1</OnDemandBaseCapacity>"))
+                .body(containsString("<OnDemandPercentageAboveBaseCapacity>60</OnDemandPercentageAboveBaseCapacity>"))
+                .body(containsString("<SpotAllocationStrategy>capacity-optimized</SpotAllocationStrategy>"));
+
+        given()
+                .formParam("Action", "DescribeAutoScalingGroups")
+                .formParam("AutoScalingGroupNames.member.1", "my-mixed-asg")
+                .header("Authorization", AUTH)
+            .when()
+                .post("/")
+            .then()
+                .statusCode(200)
+                .body(containsString("<MixedInstancesPolicy>"))
+                .body(containsString("<LaunchTemplateId>" + mixedLaunchTemplateId + "</LaunchTemplateId>"))
+                .body(containsString("<Version>6</Version>"));
+    }
+
+    @Test
+    @Order(32)
     void deleteLaunchTemplateAutoScalingGroup() {
         given()
                 .formParam("Action", "DeleteAutoScalingGroup")
@@ -794,7 +850,7 @@ class AutoScalingIntegrationTest {
     // ── Cleanup ───────────────────────────────────────────────────────────────
 
     @Test
-    @Order(32)
+    @Order(33)
     void deleteAutoScalingGroup() {
         given()
                 .formParam("Action", "DeleteAutoScalingGroup")
@@ -809,7 +865,7 @@ class AutoScalingIntegrationTest {
     }
 
     @Test
-    @Order(33)
+    @Order(34)
     void deleteMixedInstancesAutoScalingGroup() {
         given()
                 .formParam("Action", "DeleteAutoScalingGroup")
@@ -824,7 +880,7 @@ class AutoScalingIntegrationTest {
     }
 
     @Test
-    @Order(34)
+    @Order(35)
     void deleteLaunchConfiguration() {
         given()
                 .formParam("Action", "DeleteLaunchConfiguration")
@@ -838,7 +894,7 @@ class AutoScalingIntegrationTest {
     }
 
     @Test
-    @Order(35)
+    @Order(36)
     void describeAutoScalingGroupsEmpty() {
         given()
                 .formParam("Action", "DescribeAutoScalingGroups")
