@@ -215,7 +215,24 @@ public class RdsService implements Resettable {
         return createDbInstance(id, engineParam, engineVersion, masterUsername, masterPassword,
                 dbName, dbInstanceClass, allocatedStorage, iamEnabled, paramGroupName,
                 dbSubnetGroupName, dbClusterIdentifier, availabilityZone, multiAz,
-                manageMasterUserPassword, masterUserSecretKmsKeyId, tags, regionResolver.getDefaultRegion());
+                manageMasterUserPassword, masterUserSecretKmsKeyId, tags, List.of(), regionResolver.getDefaultRegion());
+    }
+
+    public DbInstance createDbInstance(String id, String engineParam, String engineVersion,
+                                       String masterUsername, String masterPassword,
+                                       String dbName, String dbInstanceClass,
+                                       int allocatedStorage, boolean iamEnabled,
+                                       String paramGroupName, String dbSubnetGroupName,
+                                       String dbClusterIdentifier, String availabilityZone,
+                                       boolean multiAz, boolean manageMasterUserPassword,
+                                       String masterUserSecretKmsKeyId,
+                                       Map<String, String> tags,
+                                       List<String> vpcSecurityGroupIds) {
+        return createDbInstance(id, engineParam, engineVersion, masterUsername, masterPassword,
+                dbName, dbInstanceClass, allocatedStorage, iamEnabled, paramGroupName,
+                dbSubnetGroupName, dbClusterIdentifier, availabilityZone, multiAz,
+                manageMasterUserPassword, masterUserSecretKmsKeyId, tags, vpcSecurityGroupIds,
+                regionResolver.getDefaultRegion());
     }
 
     public DbInstance createDbInstance(String id, String engineParam, String engineVersion,
@@ -227,6 +244,23 @@ public class RdsService implements Resettable {
                                        boolean multiAz, boolean manageMasterUserPassword,
                                        String masterUserSecretKmsKeyId,
                                        Map<String, String> tags, String region) {
+        return createDbInstance(id, engineParam, engineVersion, masterUsername, masterPassword,
+                dbName, dbInstanceClass, allocatedStorage, iamEnabled, paramGroupName,
+                dbSubnetGroupName, dbClusterIdentifier, availabilityZone, multiAz,
+                manageMasterUserPassword, masterUserSecretKmsKeyId, tags, List.of(), region);
+    }
+
+    public DbInstance createDbInstance(String id, String engineParam, String engineVersion,
+                                       String masterUsername, String masterPassword,
+                                       String dbName, String dbInstanceClass,
+                                       int allocatedStorage, boolean iamEnabled,
+                                       String paramGroupName, String dbSubnetGroupName,
+                                       String dbClusterIdentifier, String availabilityZone,
+                                       boolean multiAz, boolean manageMasterUserPassword,
+                                       String masterUserSecretKmsKeyId,
+                                       Map<String, String> tags,
+                                       List<String> vpcSecurityGroupIds,
+                                       String region) {
         String effectiveRegion = effectiveRegion(region);
         if (instances.get(id).isPresent()) {
             throw new AwsException("DBInstanceAlreadyExists",
@@ -303,6 +337,7 @@ public class RdsService implements Resettable {
         instance.setVolumeId(instanceVolumeId);
         instance.setDockerVolumeName(instanceDockerVolumeName);
         instance.setTags(tags);
+        instance.setVpcSecurityGroupIds(vpcSecurityGroupIds);
         instance.setDbSubnetGroupName(placement.dbSubnetGroupName());
         instance.setVpcId(placement.vpcId());
         instance.setAvailabilityZone(placement.availabilityZone());
@@ -421,6 +456,11 @@ public class RdsService implements Resettable {
 
     public DbInstance modifyDbInstance(String id, String newPassword, Boolean iamEnabled,
                                        String dbSubnetGroupName) {
+        return modifyDbInstance(id, newPassword, iamEnabled, dbSubnetGroupName, null);
+    }
+
+    public DbInstance modifyDbInstance(String id, String newPassword, Boolean iamEnabled,
+                                       String dbSubnetGroupName, List<String> vpcSecurityGroupIds) {
         DbInstance instance = getDbInstance(id);
         instance.setStatus(DbInstanceStatus.AVAILABLE);
         if (newPassword != null && !newPassword.isBlank()) {
@@ -432,6 +472,9 @@ public class RdsService implements Resettable {
         if (dbSubnetGroupName != null && !dbSubnetGroupName.isBlank()) {
             getDbSubnetGroup(dbSubnetGroupName);
             instance.setDbSubnetGroupName(dbSubnetGroupName);
+        }
+        if (vpcSecurityGroupIds != null && !vpcSecurityGroupIds.isEmpty()) {
+            instance.setVpcSecurityGroupIds(vpcSecurityGroupIds);
         }
         instances.put(id, instance);
         LOG.infov("DB instance {0} modified", id);
@@ -698,9 +741,13 @@ public class RdsService implements Resettable {
     }
 
     public Collection<DbSubnetGroup> listDbSubnetGroups(String filterName) {
+        return listDbSubnetGroups(filterName, regionResolver.getDefaultRegion());
+    }
+
+    public Collection<DbSubnetGroup> listDbSubnetGroups(String filterName, String region) {
         List<DbSubnetGroup> groups = new ArrayList<>();
         if (filterName == null || filterName.isBlank() || "default".equalsIgnoreCase(filterName)) {
-            groups.add(buildDefaultSubnetGroup());
+            groups.add(buildDefaultSubnetGroup(effectiveRegion(region)));
         }
         if (filterName != null && !filterName.isBlank()) {
             subnetGroups.get(filterName).ifPresent(groups::add);
