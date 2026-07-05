@@ -347,6 +347,8 @@ class AutoScalingReconcilerTest {
         asg.setRegion("us-east-1");
         asg.setAutoScalingGroupName("app-asg");
         asg.setDesiredCapacity(1);
+        String targetGroupArn = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/app/123";
+        asg.setTargetGroupARNs(List.of(targetGroupArn));
         asg.getInstances().add(instance("i-pending", "Pending"));
 
         Instance ec2Instance = new Instance();
@@ -368,6 +370,13 @@ class AutoScalingReconcilerTest {
                 eq("Launching a new EC2 instance: i-pending"),
                 eq("An instance was started in response to a desired capacity change."),
                 eq("Successful"));
+        ArgumentCaptor<List<TargetDescription>> targets = ArgumentCaptor.captor();
+        verify(elbV2Service).registerTargets(
+                eq(asg.getRegion()),
+                eq(targetGroupArn),
+                targets.capture());
+        assertEquals(1, targets.getValue().size());
+        assertEquals("i-pending", targets.getValue().getFirst().getId());
         verify(asgService, times(2)).saveAutoScalingGroup(asg);
     }
 
