@@ -697,6 +697,38 @@ class ElbV2IntegrationTest {
                         equalTo("Target is not registered to the target group"));
     }
 
+    @Test
+    @Order(29)
+    void registerTargetWithoutPortReturnsTargetGroupPortInHealthDescription() {
+        given()
+                .formParam("Action", "RegisterTargets")
+                .formParam("TargetGroupArn", tgArn)
+                .formParam("Targets.member.1.Id", "10.0.0.3")
+                .header("Authorization", AUTH)
+            .when()
+                .post("/")
+            .then()
+                .statusCode(200);
+
+        given()
+                .formParam("Action", "DescribeTargetHealth")
+                .formParam("TargetGroupArn", tgArn)
+                .formParam("Targets.member.1.Id", "10.0.0.3")
+                .header("Authorization", AUTH)
+            .when()
+                .post("/")
+            .then()
+                .statusCode(200)
+                .body("DescribeTargetHealthResponse.DescribeTargetHealthResult.TargetHealthDescriptions.member.Target.Id",
+                        equalTo("10.0.0.3"))
+                .body("DescribeTargetHealthResponse.DescribeTargetHealthResult.TargetHealthDescriptions.member.Target.Port",
+                        equalTo("80"))
+                .body("DescribeTargetHealthResponse.DescribeTargetHealthResult.TargetHealthDescriptions.member.HealthCheckPort",
+                        equalTo("80"))
+                .body("DescribeTargetHealthResponse.DescribeTargetHealthResult.TargetHealthDescriptions.member.TargetHealth.State",
+                        equalTo("initial"));
+    }
+
     // ── Listeners ─────────────────────────────────────────────────────────────
 
     @Test

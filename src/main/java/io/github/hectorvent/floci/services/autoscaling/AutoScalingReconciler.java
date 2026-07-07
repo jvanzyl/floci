@@ -78,6 +78,7 @@ public class AutoScalingReconciler {
         removeStaleInstances(asg);
         removeOrphanedTargetRegistrations(asg);
         promoteReadyInstances(asg);
+        registerActiveInstancesWithTargetGroups(asg);
 
         long activeCapacity = activeCapacity(asg);
         int desired = asg.getDesiredCapacity();
@@ -235,6 +236,49 @@ public class AutoScalingReconciler {
                 }
             } catch (Exception e) {
                 LOG.debugv("ASG {0}: could not reconcile TG {1}: {2}",
+                        asg.getAutoScalingGroupName(), tgArn, e.getMessage());
+            }
+        }
+    }
+
+    private void registerActiveInstancesWithTargetGroups(AutoScalingGroup asg) {
+        if (asg.getTargetGroupARNs().isEmpty()) {
+            return;
+        }
+
+        List<String> activeInstanceIds = asg.getInstances().stream()
+                .filter(instance -> isActiveLifecycleState(instance.getLifecycleState()))
+                .map(AsgInstance::getInstanceId)
+                .toList();
+        if (activeInstanceIds.isEmpty()) {
+            return;
+        }
+
+        for (String tgArn : asg.getTargetGroupARNs()) {
+            try {
+                Set<String> registeredInstanceIds = elbV2Service.describeTargetHealth(
+                                asg.getRegion(), tgArn, List.of()).stream()
+                        .map(TargetHealth::getTarget)
+                        .filter(target -> target != null && target.getId() != null)
+                        .map(TargetDescription::getId)
+                        .collect(Collectors.toSet());
+                List<TargetDescription> missingTargets = activeInstanceIds.stream()
+                        .filter(instanceId -> !registeredInstanceIds.contains(instanceId))
+                        .map(instanceId -> {
+                            TargetDescription target = new TargetDescription();
+                            target.setId(instanceId);
+                            return target;
+                        })
+                        .toList();
+                if (!missingTargets.isEmpty()) {
+                    elbV2Service.registerTargets(asg.getRegion(), tgArn, missingTargets);
+                    LOG.infov("ASG {0}: registered active instance target(s) {1} with TG {2}",
+                            asg.getAutoScalingGroupName(), missingTargets.stream()
+                                    .map(TargetDescription::getId)
+                                    .toList(), tgArn);
+                }
+            } catch (Exception e) {
+                LOG.debugv("ASG {0}: could not register active instances with TG {1}: {2}",
                         asg.getAutoScalingGroupName(), tgArn, e.getMessage());
             }
         }

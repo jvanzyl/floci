@@ -359,6 +359,8 @@ class AutoScalingReconcilerTest {
         when(ec2Service.describeInstances(asg.getRegion(), List.of("i-pending"), null))
                 .thenReturn(List.of(reservation));
         when(ec2Service.isInstanceContainerRunning("i-pending")).thenReturn(true);
+        when(elbV2Service.describeTargetHealth(asg.getRegion(), targetGroupArn, List.of()))
+                .thenReturn(List.of(targetHealth("i-pending")));
 
         reconciler.reconcile(asg);
 
@@ -378,6 +380,34 @@ class AutoScalingReconcilerTest {
         assertEquals(1, targets.getValue().size());
         assertEquals("i-pending", targets.getValue().getFirst().getId());
         verify(asgService, times(2)).saveAutoScalingGroup(asg);
+    }
+
+    @Test
+    void reconcileRegistersInServiceAsgInstancesWithAttachedTargetGroups() {
+        AutoScalingService asgService = mock(AutoScalingService.class);
+        Ec2Service ec2Service = mock(Ec2Service.class);
+        ElbV2Service elbV2Service = mock(ElbV2Service.class);
+        AutoScalingReconciler reconciler = new AutoScalingReconciler(asgService, ec2Service, elbV2Service);
+        AutoScalingGroup asg = new AutoScalingGroup();
+        asg.setRegion("us-east-1");
+        asg.setAutoScalingGroupName("app-asg");
+        asg.setDesiredCapacity(1);
+        String targetGroupArn = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/app/123";
+        asg.setTargetGroupARNs(List.of(targetGroupArn));
+        asg.getInstances().add(instance("i-ready", "InService"));
+        when(ec2Service.isInstanceContainerRunning("i-ready")).thenReturn(true);
+        when(elbV2Service.describeTargetHealth(asg.getRegion(), targetGroupArn, List.of()))
+                .thenReturn(List.of());
+
+        reconciler.reconcile(asg);
+
+        ArgumentCaptor<List<TargetDescription>> targets = ArgumentCaptor.captor();
+        verify(elbV2Service).registerTargets(
+                eq(asg.getRegion()),
+                eq(targetGroupArn),
+                targets.capture());
+        assertEquals(1, targets.getValue().size());
+        assertEquals("i-ready", targets.getValue().getFirst().getId());
     }
 
     private static AsgInstance instance(String lifecycleState) {

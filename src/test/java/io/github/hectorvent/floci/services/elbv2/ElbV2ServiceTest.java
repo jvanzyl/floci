@@ -225,6 +225,27 @@ class ElbV2ServiceTest {
         assertEquals("Target is not registered to the target group", health.getDescription());
     }
 
+    @Test
+    void registerTargetsDefaultsMissingPortToTargetGroupPort() {
+        String tgArn = createTargetGroup("sample-tg");
+        String instanceId = "i-1234567890abcdef0";
+        TargetDescription target = new TargetDescription();
+        target.setId(instanceId);
+        when(healthChecker.getHealth(tgArn, instanceId, 9999))
+                .thenReturn(new ElbV2HealthChecker.TargetHealthStatus("healthy", null, null));
+
+        service.registerTargets(REGION, tgArn, List.of(target));
+
+        var health = service.describeTargetHealth(REGION, tgArn, List.of()).getFirst();
+        assertEquals(instanceId, health.getTarget().getId());
+        assertEquals(9999, health.getTarget().getPort());
+        assertEquals("9999", health.getHealthCheckPort());
+        assertEquals("healthy", health.getState());
+        ArgumentCaptor<List<TargetDescription>> targetsCaptor = ArgumentCaptor.captor();
+        verify(healthChecker).addTargets(eq(tgArn), targetsCaptor.capture(), any(TargetGroup.class));
+        assertEquals(9999, targetsCaptor.getValue().getFirst().getPort());
+    }
+
     private String createTargetGroup(String name) {
         return service.createTargetGroup(
                 REGION, name, "HTTP", "HTTP1", 9999, "vpc-a", "instance",
