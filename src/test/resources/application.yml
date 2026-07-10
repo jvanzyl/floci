@@ -258,6 +258,8 @@ floci:
       emit-mode: off
     cloudtrail:
       enabled: true
+    servicequotas:
+      enabled: true
     cloudcontrol:
       enabled: true
     cloudfront:

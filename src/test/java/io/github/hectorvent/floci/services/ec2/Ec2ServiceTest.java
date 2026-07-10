@@ -7,6 +7,7 @@ import io.github.hectorvent.floci.core.storage.InMemoryStorage;
 import io.github.hectorvent.floci.core.storage.StorageBackend;
 import io.github.hectorvent.floci.core.storage.StorageFactory;
 import io.github.hectorvent.floci.services.ec2.portforward.Ec2PortForwardManager;
+import io.github.hectorvent.floci.services.ec2.model.Address;
 import io.github.hectorvent.floci.services.ec2.model.BlockDeviceMapping;
 import io.github.hectorvent.floci.services.ec2.model.EbsBlockDevice;
 import io.github.hectorvent.floci.services.ec2.model.GroupIdentifier;
@@ -313,6 +314,43 @@ class Ec2ServiceTest {
         mapping.setDeviceName("/dev/sda1");
         mapping.setEbs(ebs);
         return mapping;
+    }
+
+    @Test
+    void allocateAddressEnforcesRegionalQuotaAndPreservesTags() {
+        Ec2Service service = new Ec2Service(mockConfig(true), mock(Ec2ContainerManager.class),
+                mock(Ec2PortForwardManager.class), mock(AmiImageResolver.class),
+                mock(Ec2ImageCatalog.class), new Ec2InstanceTypeCatalog(), new InMemoryStorageFactory());
+
+        Address first = service.allocateAddress("us-east-1", List.of(new Tag("Owner", "network")));
+        assertEquals("network", service.describeAddresses("us-east-1", List.of(first.getAllocationId()), Map.of())
+                .getFirst().getTags().getFirst().getValue());
+        for (int i = 1; i < 5; i++) {
+            service.allocateAddress("us-east-1");
+        }
+
+        AwsException error = assertThrows(AwsException.class,
+                () -> service.allocateAddress("us-east-1"));
+        assertEquals("AddressLimitExceeded", error.getErrorCode());
+        assertEquals("The maximum number of addresses has been reached.", error.getMessage());
+        assertEquals(400, error.getHttpStatus());
+    }
+
+    @Test
+    void createNatGatewayEnforcesAvailabilityZoneQuota() {
+        Ec2Service service = new Ec2Service(mockConfig(true), mock(Ec2ContainerManager.class),
+                mock(Ec2PortForwardManager.class), mock(AmiImageResolver.class),
+                mock(Ec2ImageCatalog.class), new Ec2InstanceTypeCatalog(), new InMemoryStorageFactory());
+
+        for (int i = 0; i < 5; i++) {
+            service.createNatGateway("us-east-1", "subnet-default-a", null, "public", List.of());
+        }
+
+        AwsException error = assertThrows(AwsException.class,
+                () -> service.createNatGateway("us-east-1", "subnet-default-a", null, "public", List.of()));
+        assertEquals("NatGatewayLimitExceeded", error.getErrorCode());
+        assertEquals("The maximum number of NAT gateways has been reached.", error.getMessage());
+        assertEquals(400, error.getHttpStatus());
     }
 
     private static EmulatorConfig mockConfig(boolean ec2Mock) {

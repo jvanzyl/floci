@@ -2281,6 +2281,17 @@ public class Ec2Service {
                                        String connectivityType, List<Tag> natGatewayTags) {
         ensureDefaultResources(region);
         Subnet subnet = requireSubnet(region, subnetId);
+        long natGatewaysInAvailabilityZone = natGateways.scan(k -> true).stream()
+                .filter(natGateway -> region.equals(natGateway.getRegion()))
+                .filter(natGateway -> subnet.getAvailabilityZone().equals(
+                        subnets.get(key(region, natGateway.getSubnetId()))
+                                .map(Subnet::getAvailabilityZone)
+                                .orElse(null)))
+                .count();
+        if (natGatewaysInAvailabilityZone >= 5) {
+            throw new AwsException("NatGatewayLimitExceeded",
+                    "The maximum number of NAT gateways has been reached.", 400);
+        }
         if (allocationId != null && !allocationId.isBlank()) {
             getRequiredAddress(region, allocationId);
         }
@@ -2338,13 +2349,27 @@ public class Ec2Service {
     // ─── Elastic IPs ───────────────────────────────────────────────────────────
 
     public Address allocateAddress(String region) {
+        return allocateAddress(region, List.of());
+    }
+
+    public Address allocateAddress(String region, List<Tag> addressTags) {
         ensureDefaultResources(region);
+        long addressesInRegion = addresses.scan(k -> true).stream()
+                .filter(address -> region.equals(address.getRegion()))
+                .count();
+        if (addressesInRegion >= 5) {
+            throw new AwsException("AddressLimitExceeded",
+                    "The maximum number of addresses has been reached.", 400);
+        }
         String allocId = "eipalloc-" + randomHex(17);
         String ip = "54." + (new Random().nextInt(256)) + "." + (new Random().nextInt(256)) + "." + (new Random().nextInt(256));
         Address addr = new Address();
         addr.setAllocationId(allocId);
         addr.setPublicIp(ip);
         addr.setRegion(region);
+        if (addressTags != null && !addressTags.isEmpty()) {
+            addr.setTags(new ArrayList<>(addressTags));
+        }
         addresses.put(key(region, allocId), addr);
         return addr;
     }

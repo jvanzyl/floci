@@ -17,6 +17,7 @@ import io.github.hectorvent.floci.services.bcmdataexports.BcmDataExportsJsonHand
 import io.github.hectorvent.floci.services.ce.CostExplorerJsonHandler;
 import io.github.hectorvent.floci.services.cloudtrail.CloudTrailJsonHandler;
 import io.github.hectorvent.floci.services.cloudcontrol.CloudControlJsonHandler;
+import io.github.hectorvent.floci.services.servicequotas.ServiceQuotasJsonHandler;
 import io.github.hectorvent.floci.services.configservice.ConfigServiceJsonHandler;
 import io.github.hectorvent.floci.services.cur.CurJsonHandler;
 import io.github.hectorvent.floci.services.pricing.PricingJsonHandler;
@@ -92,6 +93,7 @@ public class AwsJson11Controller {
     private final BcmDataExportsJsonHandler bcmDataExportsJsonHandler;
     private final ConfigServiceJsonHandler configServiceJsonHandler;
     private final CloudTrailJsonHandler cloudTrailJsonHandler;
+    private final ServiceQuotasJsonHandler serviceQuotasJsonHandler;
     private final CloudControlJsonHandler cloudControlJsonHandler;
 
     @Inject
@@ -125,6 +127,7 @@ public class AwsJson11Controller {
                                BcmDataExportsJsonHandler bcmDataExportsJsonHandler,
                                ConfigServiceJsonHandler configServiceJsonHandler,
                                CloudTrailJsonHandler cloudTrailJsonHandler,
+                               ServiceQuotasJsonHandler serviceQuotasJsonHandler,
                                CloudControlJsonHandler cloudControlJsonHandler) {
         this.objectMapper = objectMapper;
         this.catalog = catalog;
@@ -161,6 +164,7 @@ public class AwsJson11Controller {
         this.bcmDataExportsJsonHandler = bcmDataExportsJsonHandler;
         this.configServiceJsonHandler = configServiceJsonHandler;
         this.cloudTrailJsonHandler = cloudTrailJsonHandler;
+        this.serviceQuotasJsonHandler = serviceQuotasJsonHandler;
         this.cloudControlJsonHandler = cloudControlJsonHandler;
     }
 
@@ -223,6 +227,7 @@ public class AwsJson11Controller {
                 case "bcm-data-exports" -> bcmDataExportsJsonHandler.handle(action, request, region);
                 case "config" -> configServiceJsonHandler.handle(action, request, region);
                 case "cloudtrail" -> cloudTrailJsonHandler.handle(action, request, region);
+                case "servicequotas" -> serviceQuotasJsonHandler.handle(action, request, region);
                 case "cloudcontrol" -> cloudControlJsonHandler.handle(action, request, region);
                 default -> null;
             };

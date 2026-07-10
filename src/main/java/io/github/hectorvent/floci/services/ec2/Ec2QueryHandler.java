@@ -1565,7 +1565,7 @@ public class Ec2QueryHandler {
     // ─── Elastic IP handlers ──────────────────────────────────────────────────
 
     private Response handleAllocateAddress(MultivaluedMap<String, String> p, String region) {
-        Address addr = service.allocateAddress(region);
+        Address addr = service.allocateAddress(region, parseTagsForResource(p, "elastic-ip"));
         XmlBuilder xml = new XmlBuilder()
                 .start("AllocateAddressResponse", AwsNamespaces.EC2)
                 .elem("requestId", UUID.randomUUID().toString())
