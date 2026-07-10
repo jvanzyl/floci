@@ -424,7 +424,13 @@ class Ec2Tests {
     @DisplayName("AllocateAddress - allocate EIP")
     void allocateAddress() {
         AllocateAddressResponse resp = ec2.allocateAddress(AllocateAddressRequest.builder()
-                .domain(DomainType.VPC).build());
+                .domain(DomainType.VPC)
+                .tagSpecifications(TagSpecification.builder()
+                        .resourceType(ResourceType.ELASTIC_IP)
+                        .tags(software.amazon.awssdk.services.ec2.model.Tag.builder()
+                                .key("Owner").value("sdk-test").build())
+                        .build())
+                .build());
         allocationId = resp.allocationId();
 
         assertThat(allocationId).isNotNull().startsWith("eipalloc-");
@@ -441,6 +447,8 @@ class Ec2Tests {
 
         assertThat(resp.addresses()).hasSize(1);
         assertThat(resp.addresses().get(0).allocationId()).isEqualTo(allocationId);
+        assertThat(resp.addresses().get(0).tags()).anyMatch(tag ->
+                tag.key().equals("Owner") && tag.value().equals("sdk-test"));
     }
 
     @Test

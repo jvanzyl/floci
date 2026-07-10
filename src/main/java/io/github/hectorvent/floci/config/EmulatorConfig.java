@@ -493,6 +493,7 @@ public interface EmulatorConfig {
         BcmDataExportsServiceConfig bcmDataExports();
         ConfigServiceConfig configservice();
         CloudTrailServiceConfig cloudtrail();
+        ServiceQuotasServiceConfig servicequotas();
         CloudControlServiceConfig cloudcontrol();
         CloudFrontServiceConfig cloudfront();
         AppSyncServiceConfig appsync();
@@ -530,6 +531,11 @@ public interface EmulatorConfig {
     }
 
     interface CloudTrailServiceConfig {
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface ServiceQuotasServiceConfig {
         @WithDefault("true")
         boolean enabled();
     }
