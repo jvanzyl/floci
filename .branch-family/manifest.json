@@ -1,0 +1,179 @@
+{
+  "version": 2,
+  "family": "floci-aws-compatibility",
+  "upstream": {
+    "repository": "floci-io/floci",
+    "branch": "main",
+    "revision": "b245632a2e6b87da8e264f77fbdf479193650e16",
+    "tree": "55bd85dc0c91aa945864ec035f8a8baaa2a392c8"
+  },
+  "fork": {
+    "repository": "iceguard/floci",
+    "directForkOf": "floci-io/floci",
+    "defaultBranch": "main"
+  },
+  "submission": {
+    "base": "floci-io/floci:main",
+    "stackedPullRequests": false,
+    "rule": "A dependent story waits for every prerequisite to merge, then rebases its own commits onto current upstream main before submission."
+  },
+  "aggregate": {
+    "branch": "main",
+    "revision": "67d885aaeacb60b68ca1e52f84d7e132c0e41e11",
+    "tree": "f303ddce4101c7630bdcbcca4789c64583d62572",
+    "commitsAhead": 30
+  },
+  "removedPrerequisiteBoundaries": [
+    {
+      "formerBranch": "user/jvz/base-09-rds-iam-prereqs",
+      "tip": "f39ac7d402500f89897c279cf16b5eccb928d749",
+      "branchRefRemoved": true,
+      "combines": ["role-credentials", "iam-authorization-foundation", "rds-control-plane"],
+      "purpose": "Rebase boundary for story 09 after all three prerequisites merge upstream."
+    },
+    {
+      "formerBranch": "user/jvz/base-15-refresh-prereqs",
+      "tip": "10ca536bb45a6577417334616c6f2cef836ecd0b",
+      "branchRefRemoved": true,
+      "combines": ["ec2-vpc-lifecycle", "ec2-guest-boot", "iam-authorization-foundation", "autoscaling-authorization"],
+      "purpose": "Rebase boundary for story 15 after both direct prerequisites merge upstream."
+    }
+  ],
+  "members": [
+    {
+      "id": "container-images",
+      "number": 1,
+      "title": "Build reusable portable container images",
+      "branch": "user/jvz/pr-01-container-images",
+      "tip": "f76dd4ee33ed60aa07a6f9be72251f813c2489bd",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "ec2-vpc-lifecycle",
+      "number": 2,
+      "title": "Complete the EC2 VPC lifecycle",
+      "branch": "user/jvz/pr-02-ec2-vpc-lifecycle",
+      "tip": "f68b49ad722baaceb6b049dcce3de54237de4c2e",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "ec2-vcpu-quota",
+      "number": 3,
+      "title": "Enforce Standard On-Demand vCPU quotas",
+      "branch": "user/jvz/pr-03-ec2-vcpu-quota",
+      "tip": "265b1e4aa0b2e58babb4483445f5e842baf993c6",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "ec2-guest-boot",
+      "number": 4,
+      "title": "Preserve and execute EC2 guest boot inputs",
+      "branch": "user/jvz/pr-04-ec2-guest-boot",
+      "tip": "0361651d1847513ff15dc21d24e81208c85e8945",
+      "dependsOn": ["ec2-vpc-lifecycle"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "role-credentials",
+      "number": 5,
+      "title": "Issue and consume rotating role credentials",
+      "branch": "user/jvz/pr-05-role-credentials",
+      "tip": "23c52f6e821d80f5515f8e7e7e30bf8b349588b2",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "iam-authorization-foundation",
+      "number": 6,
+      "title": "Establish resource-aware IAM policy evaluation",
+      "branch": "user/jvz/pr-06-iam-authorization-foundation",
+      "tip": "11b4b4658235aed21d87f6bc1dc711f8be85f83a",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "iam-role-profile-lifecycle",
+      "number": 7,
+      "title": "Complete IAM role and instance-profile management",
+      "branch": "user/jvz/pr-07-iam-role-profile-lifecycle",
+      "tip": "6f3b3caebb8c6a830eba51589e49b4f67b4db4fa",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "rds-control-plane",
+      "number": 8,
+      "title": "Complete the RDS control-plane and managed-secret lifecycle",
+      "branch": "user/jvz/pr-08-rds-control-plane",
+      "tip": "cbe1d9d41ea49711819d30456a511ad1369a5a27",
+      "dependsOn": [],
+      "state": "direct-upstream"
+    },
+    {
+      "id": "rds-iam-authorization",
+      "number": 9,
+      "title": "Enforce RDS IAM authorization",
+      "branch": "user/jvz/pr-09-rds-iam-authorization",
+      "tip": "b340b1d1b2aaedcc0cdd1751b4784c40451cbdc1",
+      "dependsOn": ["role-credentials", "iam-authorization-foundation", "rds-control-plane"],
+      "state": "held-for-upstream-prerequisites"
+    },
+    {
+      "id": "secret-key-authorization",
+      "number": 10,
+      "title": "Authorize tagged secret and key resources",
+      "branch": "user/jvz/pr-10-secret-key-authorization",
+      "tip": "79dcde7759021273a59b84828853f23e0b7b90d1",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "ssm-authorization",
+      "number": 11,
+      "title": "Authorize SSM targets without overgranting managed policies",
+      "branch": "user/jvz/pr-11-ssm-authorization",
+      "tip": "68ee278dcb61e8214ba65adc9013915e323630c7",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "elbv2-https-lifecycle",
+      "number": 12,
+      "title": "Support tagged HTTPS load balancers end to end",
+      "branch": "user/jvz/pr-12-elbv2-https-lifecycle",
+      "tip": "11e73278b557db5f455931b3d2405db1940f2791",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "launch-template-authorization",
+      "number": 13,
+      "title": "Authorize the complete EC2 launch-template lifecycle",
+      "branch": "user/jvz/pr-13-launch-template-authorization",
+      "tip": "f40e993fba4c04929946dd687d561334a8f07ca4",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "autoscaling-authorization",
+      "number": 14,
+      "title": "Authorize exact Auto Scaling group operations",
+      "branch": "user/jvz/pr-14-autoscaling-authorization",
+      "tip": "c195dd9c91ed5cd97bf9dd1d4d13e261e8016a4e",
+      "dependsOn": ["iam-authorization-foundation"],
+      "state": "held-for-upstream-prerequisite"
+    },
+    {
+      "id": "autoscaling-refresh-lifecycle",
+      "number": 15,
+      "title": "Reconcile and roll back instance refreshes",
+      "branch": "user/jvz/pr-15-autoscaling-refresh-lifecycle",
+      "tip": "31d40045ca029cab59cf6a3a09b8fe39f4631a1f",
+      "dependsOn": ["ec2-guest-boot", "autoscaling-authorization"],
+      "state": "held-for-upstream-prerequisite"
+    }
+  ]
+}
